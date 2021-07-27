@@ -23,9 +23,9 @@ namespace NotesPredictor
     public class NotesPredictorController : MonoBehaviour
     {
         public static NotesPredictorController Instance { get; private set; }
-        private float mapTime = 0f;
-        CurvedTextMeshPro textMesh = new GameObject("Text").AddComponent<CurvedTextMeshPro>();
-        GameObject cubeparent = new GameObject("cubeparent");
+        private CurvedTextMeshPro textMesh = new GameObject("Text").AddComponent<CurvedTextMeshPro>();
+        //GameObject blueParent = new GameObject("blueParent");
+        //GameObject redParent = new GameObject("redParent");
 
         // These methods are automatically called by Unity, you should remove any you aren't using.
         #region Monobehaviour Messages
@@ -106,7 +106,8 @@ namespace NotesPredictor
                     if (next.name == "GameCore")
                     {
                         Plugin.Log.Debug("GameCore Scene Started");
-                        mapTime = 0;
+                        GameObject blueParent = new GameObject("blueParent");
+                        GameObject redParent = new GameObject("redParent");
                         StartCoroutine(GameCoreCoroutine());
                         IEnumerator GameCoreCoroutine()
                         {
@@ -212,7 +213,23 @@ namespace NotesPredictor
                                         noteStick.transform.localScale = new Vector3(0.02f, .4f, 0.02f);
                                         notePair.transform.position = new Vector3(x, y, 1.5f);
                                         notePair.transform.eulerAngles = new Vector3(0, 0, rz);
-                                        notePair.transform.SetParent(cubeparent.transform);
+                                        switch (noteController.noteData.colorType)
+                                        {
+                                            case ColorType.ColorA:
+                                                noteCube.GetComponent<Renderer>().material.color = Color.red;
+                                                noteStick.GetComponent<Renderer>().material.color = new Color(1f, .3f, .3f);
+                                                notePair.transform.SetParent(redParent.transform);
+                                                break;
+                                            case ColorType.ColorB:
+                                                noteCube.GetComponent<Renderer>().material.color = Color.blue;
+                                                noteStick.GetComponent<Renderer>().material.color = new Color(.3f, .3f, 1f);
+                                                notePair.transform.SetParent(blueParent.transform);
+                                                break;
+                                            default:
+                                                Destroy(noteCube);
+                                                break;
+                                        }
+                                        notePair.SetActive(false);
                                         Destroy(notePair, 1.25f);
                                     };
                                     break;
@@ -231,14 +248,52 @@ namespace NotesPredictor
         /// </summary>
         private void Update()
         {
-            GameObject[] ChildObject = new GameObject[cubeparent.transform.childCount];
-            for (int i = 0; i < cubeparent.transform.childCount; i++)
+            //Plugin.Log.Debug("Update run");
+            GameObject blueParent = GameObject.Find("blueParent");
+            if (blueParent != null)
             {
-                GameObject notePair = cubeparent.transform.GetChild(i).gameObject;
-                GameObject noteCube = notePair.transform.GetChild(0).gameObject;
-                Vector3 nowscale = noteCube.transform.localScale;
-                nowscale *= 1.04f;
-                noteCube.transform.localScale = nowscale;
+                //Plugin.Log.Debug("blueParent name is " + blueParent.name);
+                int blueCount = blueParent.transform.childCount;
+                GameObject[] blueChildren = new GameObject[blueCount];
+                for (int i = 0; i < blueCount; i++)
+                {
+                    GameObject notePair = blueParent.transform.GetChild(i).gameObject;
+                    GameObject noteCube = notePair.transform.GetChild(0).gameObject;
+                    Vector3 nowscale = noteCube.transform.localScale;
+                    nowscale *= 1.04f;
+                    noteCube.transform.localScale = nowscale;
+                    if (i < 2)
+                    {
+                        notePair.SetActive(true);
+                    }
+                    else
+                    {
+                        notePair.SetActive(false);
+                    }
+                }
+            }
+            GameObject redParent = GameObject.Find("redParent");
+            if (redParent != null)
+            {
+                //Plugin.Log.Debug("redParent name is " + redParent.name);
+                int redCount = redParent.transform.childCount;
+                GameObject[] redChildren = new GameObject[redCount];
+                for (int i = 0; i < redParent.transform.childCount; i++)
+                {
+                    GameObject notePair = redParent.transform.GetChild(i).gameObject;
+                    GameObject noteCube = notePair.transform.GetChild(0).gameObject;
+                    Vector3 nowscale = noteCube.transform.localScale;
+                    nowscale *= 1.04f;
+                    noteCube.transform.localScale = nowscale;
+                    if (i < 2)
+                    {
+                        notePair.SetActive(true);
+                    }
+                    else
+                    {
+                        notePair.SetActive(false);
+                    }
+                }
             }
         }
 
