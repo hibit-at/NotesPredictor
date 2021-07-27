@@ -90,15 +90,27 @@ namespace NotesPredictor
                 cube.transform.localPosition = new Vector3(0, 0, 0);
                 cube.transform.localScale = new Vector3(0.2f, 0.2f, 0.2f);
                 cube.SetActive(true);
-                GameObject stick = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                //GameObject stick = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                GameObject stick = GameObject.CreatePrimitive(PrimitiveType.Cube);
                 renderer = stick.GetComponent<Renderer>();
                 renderer.material = new Material(Shader.Find("Custom/SimpleLit"));
                 renderer.material.color = Color.white;
                 stick.name = "stick";
                 stick.transform.SetParent(pair.transform);
-                stick.transform.localPosition = new Vector3(0, .27f, 0);
-                stick.transform.localScale = new Vector3(0.01f, .4f, 0.01f);
+                stick.transform.localPosition = new Vector3(0, .3f, .3f);
+                //stick.transform.localScale = new Vector3(0.01f, .4f, 0.01f);
+                stick.transform.localScale = new Vector3(0.01f, 1.5f, 0.6f);
                 stick.SetActive(true);
+                GameObject wrist = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                renderer = wrist.GetComponent<Renderer>();
+                renderer.material = new Material(Shader.Find("Custom/SimpleLit"));
+                renderer.material.color = Color.green;
+                wrist.name = "wrist";
+                wrist.transform.SetParent(pair.transform);
+                wrist.transform.localPosition = new Vector3(0, .6f, -2f);
+                wrist.transform.localScale = new Vector3(0.2f, 0.2f, 0.2f);
+                wrist.SetActive(true);
+
 
 
                 SceneManager.activeSceneChanged += (Scene _, Scene next) =>
@@ -110,6 +122,8 @@ namespace NotesPredictor
                         GameObject redParent = new GameObject("redParent");
                         Vector3 bluePos = new Vector3(.3f, 1.8f, 1.5f);
                         Vector3 redPos = new Vector3(-.3f, 1.8f, 1.5f);
+                        bool blueNextDown = true;
+                        bool redNextDown = true;
                         StartCoroutine(GameCoreCoroutine());
                         IEnumerator GameCoreCoroutine()
                         {
@@ -124,6 +138,7 @@ namespace NotesPredictor
                                         GameObject notePair = Instantiate(pair);
                                         GameObject noteCube = notePair.transform.GetChild(0).gameObject;
                                         GameObject noteStick = notePair.transform.GetChild(1).gameObject;
+                                        GameObject noteWrist = notePair.transform.GetChild(2).gameObject;
                                         float x = 0;
                                         switch ((int)noteController.noteData.lineIndex)
                                         {
@@ -162,6 +177,7 @@ namespace NotesPredictor
                                         //Plugin.Log.Debug("x" + x.ToString());
                                         //Plugin.Log.Debug("y" + y.ToString());
                                         float rz = 0;
+
                                         switch (noteController.noteData.cutDirection)
                                         {
                                             case NoteCutDirection.Down:
@@ -214,6 +230,8 @@ namespace NotesPredictor
                                                 rz = 0;
                                                 break;
                                         }
+                                        Vector3 nowPos = noteWrist.transform.position;
+                                        noteWrist.transform.position = new Vector3(nowPos[0], Mathf.Clamp(nowPos[1], .6f, 1.8f), nowPos[2]);
                                         switch (noteController.noteData.colorType)
                                         {
                                             case ColorType.ColorA:
@@ -229,22 +247,24 @@ namespace NotesPredictor
                                                 break;
                                         }
                                         noteCube.transform.localPosition = new Vector3(0, 0, 0);
-                                        noteCube.transform.localScale = new Vector3(0.005f, 0.005f, 0.005f);
-                                        noteStick.transform.localPosition = new Vector3(0, .4f, 0);
-                                        noteStick.transform.localScale = new Vector3(0.02f, .4f, 0.02f);
+                                        noteCube.transform.localScale = new Vector3(0.2f, 0.2f, 0.2f);
+                                        //noteStick.transform.localPosition = new Vector3(0, .4f, 0);
+                                        //noteStick.transform.localScale = new Vector3(0.02f, .4f, 0.02f);
                                         notePair.transform.position = new Vector3(x, y, 1.5f);
                                         notePair.transform.eulerAngles = new Vector3(0, 0, rz);
                                         switch (noteController.noteData.colorType)
                                         {
                                             case ColorType.ColorA:
-                                                noteCube.GetComponent<Renderer>().material.color = Color.red;
-                                                noteStick.GetComponent<Renderer>().material.color = new Color(1f, .3f, .3f);
+                                                noteCube.GetComponent<Renderer>().material.color = new Color(.3f, 0, 0);
+                                                noteStick.GetComponent<Renderer>().material.color = new Color(1f, .5f, .5f);
+                                                noteWrist.GetComponent<Renderer>().material.color = new Color(.3f, 0, 0);
                                                 notePair.transform.SetParent(redParent.transform);
                                                 redPos = notePair.transform.position;
                                                 break;
                                             case ColorType.ColorB:
-                                                noteCube.GetComponent<Renderer>().material.color = Color.blue;
-                                                noteStick.GetComponent<Renderer>().material.color = new Color(.3f, .3f, 1f);
+                                                noteCube.GetComponent<Renderer>().material.color = new Color(0, 0, .3f);
+                                                noteStick.GetComponent<Renderer>().material.color = new Color(.5f, .5f, 1f);
+                                                noteWrist.GetComponent<Renderer>().material.color = new Color(0,0, .3f);
                                                 notePair.transform.SetParent(blueParent.transform);
                                                 bluePos = notePair.transform.position;
                                                 break;
@@ -282,12 +302,18 @@ namespace NotesPredictor
                 {
                     GameObject notePair = blueParent.transform.GetChild(i).gameObject;
                     GameObject noteCube = notePair.transform.GetChild(0).gameObject;
-                    Vector3 nowscale = noteCube.transform.localScale;
-                    nowscale *= 1.04f;
-                    noteCube.transform.localScale = nowscale;
-                    if (i < 2)
+                    GameObject noteWrist = notePair.transform.GetChild(2).gameObject;
+                    if (i == 0)
                     {
                         notePair.SetActive(true);
+                        noteCube.SetActive(true);
+                        noteWrist.SetActive(true);
+                    }
+                    else if (i == 1)
+                    {
+                        notePair.SetActive(true);
+                        noteCube.SetActive(true);
+                        noteWrist.SetActive(false);
                     }
                     else
                     {
@@ -305,12 +331,18 @@ namespace NotesPredictor
                 {
                     GameObject notePair = redParent.transform.GetChild(i).gameObject;
                     GameObject noteCube = notePair.transform.GetChild(0).gameObject;
-                    Vector3 nowscale = noteCube.transform.localScale;
-                    nowscale *= 1.04f;
-                    noteCube.transform.localScale = nowscale;
-                    if (i < 2)
+                    GameObject noteWrist = notePair.transform.GetChild(2).gameObject;
+                    if (i  == 0)
                     {
                         notePair.SetActive(true);
+                        noteCube.SetActive(true);
+                        noteWrist.SetActive(true);
+                    }
+                    else if (i == 1)
+                    {
+                        notePair.SetActive(true);
+                        noteCube.SetActive(true);
+                        noteWrist.SetActive(false);
                     }
                     else
                     {
