@@ -108,6 +108,8 @@ namespace NotesPredictor
                         Plugin.Log.Debug("GameCore Scene Started");
                         GameObject blueParent = new GameObject("blueParent");
                         GameObject redParent = new GameObject("redParent");
+                        Vector3 bluePos = new Vector3(.3f, 1.8f, 1.5f);
+                        Vector3 redPos = new Vector3(-.3f, 1.8f, 1.5f);
                         StartCoroutine(GameCoreCoroutine());
                         IEnumerator GameCoreCoroutine()
                         {
@@ -122,7 +124,6 @@ namespace NotesPredictor
                                         GameObject notePair = Instantiate(pair);
                                         GameObject noteCube = notePair.transform.GetChild(0).gameObject;
                                         GameObject noteStick = notePair.transform.GetChild(1).gameObject;
-                                        //GameObject noteCube = Instantiate(cube);
                                         float x = 0;
                                         switch ((int)noteController.noteData.lineIndex)
                                         {
@@ -158,8 +159,8 @@ namespace NotesPredictor
                                                 Destroy(notePair);
                                                 break;
                                         }
-                                        Plugin.Log.Debug("x" + x.ToString());
-                                        Plugin.Log.Debug("y" + y.ToString());
+                                        //Plugin.Log.Debug("x" + x.ToString());
+                                        //Plugin.Log.Debug("y" + y.ToString());
                                         float rz = 0;
                                         switch (noteController.noteData.cutDirection)
                                         {
@@ -187,6 +188,26 @@ namespace NotesPredictor
                                             case NoteCutDirection.UpRight:
                                                 rz = 135;
                                                 break;
+                                            case NoteCutDirection.Any:
+                                                Vector3 old_pos = new Vector3(0, 0, 0);
+                                                switch (noteController.noteData.colorType)
+                                                {
+                                                    case ColorType.ColorA:
+                                                        old_pos = redPos;
+                                                        break;
+                                                    case ColorType.ColorB:
+                                                        old_pos = bluePos;
+                                                        break;
+                                                    default:
+                                                        Destroy(notePair);
+                                                        break;
+                                                }
+                                                Vector3 from = new Vector3(0, 1f, 0);
+                                                Vector3 to = old_pos - new Vector3(x, y, 1.5f);
+                                                Vector3 axis = new Vector3(0, 0, 1f);
+                                                float Angle = Vector3.SignedAngle(from, to, axis);
+                                                rz = Angle;
+                                                break;
                                             default:
                                                 noteStick = notePair.transform.GetChild(1).gameObject;
                                                 noteStick.SetActive(false);
@@ -204,7 +225,7 @@ namespace NotesPredictor
                                                 noteStick.GetComponent<Renderer>().material.color = new Color(.3f, .3f, 1f);
                                                 break;
                                             default:
-                                                Destroy(noteCube);
+                                                Destroy(notePair);
                                                 break;
                                         }
                                         noteCube.transform.localPosition = new Vector3(0, 0, 0);
@@ -219,11 +240,13 @@ namespace NotesPredictor
                                                 noteCube.GetComponent<Renderer>().material.color = Color.red;
                                                 noteStick.GetComponent<Renderer>().material.color = new Color(1f, .3f, .3f);
                                                 notePair.transform.SetParent(redParent.transform);
+                                                redPos = notePair.transform.position;
                                                 break;
                                             case ColorType.ColorB:
                                                 noteCube.GetComponent<Renderer>().material.color = Color.blue;
                                                 noteStick.GetComponent<Renderer>().material.color = new Color(.3f, .3f, 1f);
                                                 notePair.transform.SetParent(blueParent.transform);
+                                                bluePos = notePair.transform.position;
                                                 break;
                                             default:
                                                 Destroy(noteCube);
