@@ -1,0 +1,8 @@
+.vs
+bin
+Configuration
+obj
+Properties
+Directory.Build.Props
+Directory.Build.targets
+NotesPredictor.sln
