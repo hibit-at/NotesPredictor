@@ -26,13 +26,8 @@ namespace NotesPredictor
     {
         public static NotesPredictorController Instance { get; private set; }
         private CurvedTextMeshPro textMesh = new GameObject("Text").AddComponent<CurvedTextMeshPro>();
-        //GameObject blueParent = new GameObject("blueParent");
-        //GameObject redParent = new GameObject("redParent");
-        //Pair_and_Time[] blueParent = new Pair_and_Time[0];
-        //Pair_and_Time[] redParent = new Pair_and_Time[0];
         Queue<Pair_and_Time> blueParent = new Queue<Pair_and_Time>();
         Queue<Pair_and_Time> redParent = new Queue<Pair_and_Time>();
-        float mul = 1f;
 
         // These methods are automatically called by Unity, you should remove any you aren't using.
         #region Monobehaviour Messages
