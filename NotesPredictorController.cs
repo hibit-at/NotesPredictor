@@ -164,7 +164,6 @@ namespace NotesPredictor
                                 BeatmapObjectManager beatmapObjectManager = pauseController?.GetField<BeatmapObjectManager, PauseController>("_beatmapObjectManager");
                                 if (BS_Utils.Plugin.LevelData.GameplayCoreSceneSetupData.practiceSettings != null)
                                 {
-                                    mul = BS_Utils.Plugin.LevelData.GameplayCoreSceneSetupData.practiceSettings.songSpeedMul;
                                     if (beatmapObjectManager != null)
                                     {
                                         beatmapObjectManager.noteWasSpawnedEvent += (NoteController noteController) =>
