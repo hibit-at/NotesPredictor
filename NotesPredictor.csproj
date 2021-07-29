@@ -43,6 +43,9 @@
     <Reference Include="BeatmapCore">
       <HintPath>..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\BeatmapCore.dll</HintPath>
     </Reference>
+    <Reference Include="BS_Utils">
+      <HintPath>..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Beat Saber\Plugins\BS_Utils.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />

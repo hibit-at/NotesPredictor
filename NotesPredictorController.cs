@@ -20,12 +20,19 @@ namespace NotesPredictor
     /// Monobehaviours (scripts) are added to GameObjects.
     /// For a full list of Messages a Monobehaviour can receive from the game, see https://docs.unity3d.com/ScriptReference/MonoBehaviour.html.
     /// </summary>
+
+
     public class NotesPredictorController : MonoBehaviour
     {
         public static NotesPredictorController Instance { get; private set; }
         private CurvedTextMeshPro textMesh = new GameObject("Text").AddComponent<CurvedTextMeshPro>();
         //GameObject blueParent = new GameObject("blueParent");
         //GameObject redParent = new GameObject("redParent");
+        //Pair_and_Time[] blueParent = new Pair_and_Time[0];
+        //Pair_and_Time[] redParent = new Pair_and_Time[0];
+        Queue<Pair_and_Time> blueParent = new Queue<Pair_and_Time>();
+        Queue<Pair_and_Time> redParent = new Queue<Pair_and_Time>();
+        float mul = 1f;
 
         // These methods are automatically called by Unity, you should remove any you aren't using.
         #region Monobehaviour Messages
@@ -49,6 +56,39 @@ namespace NotesPredictor
         /// <summary>
         /// Only ever called once on the first frame the script is Enabled. Start is called after any other script's Awake() and before Update().
         /// </summary>
+
+        private static T FindFirstOrDefault<T>() where T : UnityEngine.Object
+        {
+            T obj = Resources.FindObjectsOfTypeAll<T>().FirstOrDefault();
+            if (obj == null)
+            {
+                Plugin.Log.Error("Couldn't find " + typeof(T).FullName);
+                throw new InvalidOperationException("Couldn't find " + typeof(T).FullName);
+            }
+            return obj;
+        }
+
+        private string ReadAllLine(string filePath, string encodingName)
+        {
+            StreamReader sr = new StreamReader(filePath, Encoding.GetEncoding(encodingName));
+            string allLine = sr.ReadToEnd();
+            sr.Close();
+
+            return allLine;
+        }
+
+        public class Pair_and_Time
+        {
+            public GameObject pair;
+            public float limit;
+
+            public Pair_and_Time(GameObject pair, float limit)
+            {
+                this.pair = pair;
+                this.limit = limit;
+            }
+        }
+
         private void Start()
         {
 
@@ -61,7 +101,16 @@ namespace NotesPredictor
             textMesh.transform.position = new Vector3(0, 2f, 3f);
             textMesh.color = Color.white;
             textMesh.fontSize = 0.2f;
-            textMesh.text = "";
+            textMesh.text = "debug";
+
+
+            string Filepath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Userdata", "NotesPredictor", "config.cfg");
+            string jsonStr = ReadAllLine(Filepath, "utf-8");
+            Plugin.Log.Debug(jsonStr);
+            Plugin.Log.Debug(Filepath);
+
+
+
 
             StartCoroutine(InitCoroutine());
 
@@ -97,19 +146,10 @@ namespace NotesPredictor
                 renderer.material.color = Color.white;
                 stick.name = "stick";
                 stick.transform.SetParent(pair.transform);
-                stick.transform.localPosition = new Vector3(0, .3f, .3f);
+                stick.transform.localPosition = new Vector3(0, .3f, 0);
                 //stick.transform.localScale = new Vector3(0.01f, .4f, 0.01f);
-                stick.transform.localScale = new Vector3(0.01f, 1.5f, 0.6f);
+                stick.transform.localScale = new Vector3(0.01f, 1.5f, 0.1f);
                 stick.SetActive(true);
-                GameObject wrist = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-                renderer = wrist.GetComponent<Renderer>();
-                renderer.material = new Material(Shader.Find("Custom/SimpleLit"));
-                renderer.material.color = Color.green;
-                wrist.name = "wrist";
-                wrist.transform.SetParent(pair.transform);
-                wrist.transform.localPosition = new Vector3(0, .6f, -2f);
-                wrist.transform.localScale = new Vector3(0.2f, 0.2f, 0.2f);
-                wrist.SetActive(true);
 
 
 
@@ -118,12 +158,8 @@ namespace NotesPredictor
                     if (next.name == "GameCore")
                     {
                         Plugin.Log.Debug("GameCore Scene Started");
-                        GameObject blueParent = new GameObject("blueParent");
-                        GameObject redParent = new GameObject("redParent");
                         Vector3 bluePos = new Vector3(.3f, 1.8f, 1.5f);
                         Vector3 redPos = new Vector3(-.3f, 1.8f, 1.5f);
-                        bool blueNextDown = true;
-                        bool redNextDown = true;
                         StartCoroutine(GameCoreCoroutine());
                         IEnumerator GameCoreCoroutine()
                         {
@@ -131,151 +167,148 @@ namespace NotesPredictor
                             {
                                 PauseController pauseController = Resources.FindObjectsOfTypeAll<PauseController>().FirstOrDefault(x => x.isActiveAndEnabled);
                                 BeatmapObjectManager beatmapObjectManager = pauseController?.GetField<BeatmapObjectManager, PauseController>("_beatmapObjectManager");
-                                if (beatmapObjectManager != null)
+                                if (BS_Utils.Plugin.LevelData.GameplayCoreSceneSetupData.practiceSettings != null)
                                 {
-                                    beatmapObjectManager.noteWasSpawnedEvent += (NoteController noteController) =>
+                                    mul = BS_Utils.Plugin.LevelData.GameplayCoreSceneSetupData.practiceSettings.songSpeedMul;
+                                    if (beatmapObjectManager != null)
                                     {
-                                        GameObject notePair = Instantiate(pair);
-                                        GameObject noteCube = notePair.transform.GetChild(0).gameObject;
-                                        GameObject noteStick = notePair.transform.GetChild(1).gameObject;
-                                        GameObject noteWrist = notePair.transform.GetChild(2).gameObject;
-                                        float x = 0;
-                                        switch ((int)noteController.noteData.lineIndex)
+                                        beatmapObjectManager.noteWasSpawnedEvent += (NoteController noteController) =>
                                         {
-                                            case 0:
-                                                x = -0.9f;
-                                                break;
-                                            case 1:
-                                                x = -0.3f;
-                                                break;
-                                            case 2:
-                                                x = 0.3f;
-                                                break;
-                                            case 3:
-                                                x = 0.9f;
-                                                break;
-                                            default:
-                                                Destroy(notePair);
-                                                break;
-                                        }
-                                        float y = 0;
-                                        switch (noteController.noteData.noteLineLayer)
-                                        {
-                                            case NoteLineLayer.Base:
-                                                y = 0.6f;
-                                                break;
-                                            case NoteLineLayer.Upper:
-                                                y = 1.2f;
-                                                break;
-                                            case NoteLineLayer.Top:
-                                                y = 1.8f;
-                                                break;
-                                            default:
-                                                Destroy(notePair);
-                                                break;
-                                        }
-                                        //Plugin.Log.Debug("x" + x.ToString());
-                                        //Plugin.Log.Debug("y" + y.ToString());
-                                        float rz = 0;
+                                            Plugin.Log.Debug("note spawned");
+                                            GameObject notePair = Instantiate(pair);
+                                            GameObject noteCube = notePair.transform.GetChild(0).gameObject;
+                                            GameObject noteStick = notePair.transform.GetChild(1).gameObject;
+                                            float limit = noteController.noteData.time;
+                                            Pair_and_Time notePairTime = new Pair_and_Time(notePair, limit);
+                                            float x = 0;
+                                            switch ((int)noteController.noteData.lineIndex)
+                                            {
+                                                case 0:
+                                                    x = -0.9f;
+                                                    break;
+                                                case 1:
+                                                    x = -0.3f;
+                                                    break;
+                                                case 2:
+                                                    x = 0.3f;
+                                                    break;
+                                                case 3:
+                                                    x = 0.9f;
+                                                    break;
+                                                default:
+                                                    Destroy(notePair);
+                                                    break;
+                                            }
+                                            float y = 0;
+                                            switch (noteController.noteData.noteLineLayer)
+                                            {
+                                                case NoteLineLayer.Base:
+                                                    y = 0.6f;
+                                                    break;
+                                                case NoteLineLayer.Upper:
+                                                    y = 1.2f;
+                                                    break;
+                                                case NoteLineLayer.Top:
+                                                    y = 1.8f;
+                                                    break;
+                                                default:
+                                                    Destroy(notePair);
+                                                    break;
+                                            }
+                                            float rz = 0;
 
-                                        switch (noteController.noteData.cutDirection)
-                                        {
-                                            case NoteCutDirection.Down:
-                                                rz = 0;
-                                                break;
-                                            case NoteCutDirection.Up:
-                                                rz = 180;
-                                                break;
-                                            case NoteCutDirection.Right:
-                                                rz = 90;
-                                                break;
-                                            case NoteCutDirection.Left:
-                                                rz = -90;
-                                                break;
-                                            case NoteCutDirection.DownLeft:
-                                                rz = -45;
-                                                break;
-                                            case NoteCutDirection.DownRight:
-                                                rz = 45;
-                                                break;
-                                            case NoteCutDirection.UpLeft:
-                                                rz = -135;
-                                                break;
-                                            case NoteCutDirection.UpRight:
-                                                rz = 135;
-                                                break;
-                                            case NoteCutDirection.Any:
-                                                Vector3 old_pos = new Vector3(0, 0, 0);
-                                                switch (noteController.noteData.colorType)
-                                                {
-                                                    case ColorType.ColorA:
-                                                        old_pos = redPos;
-                                                        break;
-                                                    case ColorType.ColorB:
-                                                        old_pos = bluePos;
-                                                        break;
-                                                    default:
-                                                        Destroy(notePair);
-                                                        break;
-                                                }
-                                                Vector3 from = new Vector3(0, 1f, 0);
-                                                Vector3 to = old_pos - new Vector3(x, y, 1.5f);
-                                                Vector3 axis = new Vector3(0, 0, 1f);
-                                                float Angle = Vector3.SignedAngle(from, to, axis);
-                                                rz = Angle;
-                                                break;
-                                            default:
-                                                noteStick = notePair.transform.GetChild(1).gameObject;
-                                                noteStick.SetActive(false);
-                                                rz = 0;
-                                                break;
-                                        }
-                                        Vector3 nowPos = noteWrist.transform.position;
-                                        noteWrist.transform.position = new Vector3(nowPos[0], Mathf.Clamp(nowPos[1], .6f, 1.8f), nowPos[2]);
-                                        switch (noteController.noteData.colorType)
-                                        {
-                                            case ColorType.ColorA:
-                                                noteCube.GetComponent<Renderer>().material.color = Color.red;
-                                                noteStick.GetComponent<Renderer>().material.color = new Color(1f, .3f, .3f);
-                                                break;
-                                            case ColorType.ColorB:
-                                                noteCube.GetComponent<Renderer>().material.color = Color.blue;
-                                                noteStick.GetComponent<Renderer>().material.color = new Color(.3f, .3f, 1f);
-                                                break;
-                                            default:
-                                                Destroy(notePair);
-                                                break;
-                                        }
-                                        noteCube.transform.localPosition = new Vector3(0, 0, 0);
-                                        noteCube.transform.localScale = new Vector3(0.2f, 0.2f, 0.2f);
-                                        //noteStick.transform.localPosition = new Vector3(0, .4f, 0);
-                                        //noteStick.transform.localScale = new Vector3(0.02f, .4f, 0.02f);
-                                        notePair.transform.position = new Vector3(x, y, 1.5f);
-                                        notePair.transform.eulerAngles = new Vector3(0, 0, rz);
-                                        switch (noteController.noteData.colorType)
-                                        {
-                                            case ColorType.ColorA:
-                                                noteCube.GetComponent<Renderer>().material.color = new Color(.3f, 0, 0);
-                                                noteStick.GetComponent<Renderer>().material.color = new Color(1f, .5f, .5f);
-                                                noteWrist.GetComponent<Renderer>().material.color = new Color(.3f, 0, 0);
-                                                notePair.transform.SetParent(redParent.transform);
-                                                redPos = notePair.transform.position;
-                                                break;
-                                            case ColorType.ColorB:
-                                                noteCube.GetComponent<Renderer>().material.color = new Color(0, 0, .3f);
-                                                noteStick.GetComponent<Renderer>().material.color = new Color(.5f, .5f, 1f);
-                                                noteWrist.GetComponent<Renderer>().material.color = new Color(0,0, .3f);
-                                                notePair.transform.SetParent(blueParent.transform);
-                                                bluePos = notePair.transform.position;
-                                                break;
-                                            default:
-                                                Destroy(noteCube);
-                                                break;
-                                        }
-                                        notePair.SetActive(false);
-                                        Destroy(notePair, 1.25f);
-                                    };
-                                    break;
+                                            switch (noteController.noteData.cutDirection)
+                                            {
+                                                case NoteCutDirection.Down:
+                                                    rz = 0;
+                                                    break;
+                                                case NoteCutDirection.Up:
+                                                    rz = 180;
+                                                    break;
+                                                case NoteCutDirection.Right:
+                                                    rz = 90;
+                                                    break;
+                                                case NoteCutDirection.Left:
+                                                    rz = -90;
+                                                    break;
+                                                case NoteCutDirection.DownLeft:
+                                                    rz = -45;
+                                                    break;
+                                                case NoteCutDirection.DownRight:
+                                                    rz = 45;
+                                                    break;
+                                                case NoteCutDirection.UpLeft:
+                                                    rz = -135;
+                                                    break;
+                                                case NoteCutDirection.UpRight:
+                                                    rz = 135;
+                                                    break;
+                                                case NoteCutDirection.Any:
+                                                    Vector3 old_pos = new Vector3(0, 0, 0);
+                                                    switch (noteController.noteData.colorType)
+                                                    {
+                                                        case ColorType.ColorA:
+                                                            old_pos = redPos;
+                                                            break;
+                                                        case ColorType.ColorB:
+                                                            old_pos = bluePos;
+                                                            break;
+                                                        default:
+                                                            Destroy(notePair);
+                                                            break;
+                                                    }
+                                                    Vector3 from = new Vector3(0, 1f, 0);
+                                                    Vector3 to = old_pos - new Vector3(x, y, 1.0f);
+                                                    Vector3 axis = new Vector3(0, 0, 1f);
+                                                    float Angle = Vector3.SignedAngle(from, to, axis);
+                                                    rz = Angle;
+                                                    break;
+                                                default:
+                                                    noteStick = notePair.transform.GetChild(1).gameObject;
+                                                    noteStick.SetActive(false);
+                                                    rz = 0;
+                                                    break;
+                                            }
+                                            switch (noteController.noteData.colorType)
+                                            {
+                                                case ColorType.ColorA:
+                                                    noteCube.GetComponent<Renderer>().material.color = Color.red;
+                                                    noteStick.GetComponent<Renderer>().material.color = new Color(1f, .3f, .3f);
+                                                    break;
+                                                case ColorType.ColorB:
+                                                    noteCube.GetComponent<Renderer>().material.color = Color.blue;
+                                                    noteStick.GetComponent<Renderer>().material.color = new Color(.3f, .3f, 1f);
+                                                    break;
+                                                default:
+                                                    Destroy(notePair);
+                                                    break;
+                                            }
+                                            noteCube.transform.localPosition = new Vector3(0, 0, 0);
+                                            noteCube.transform.localScale = new Vector3(0.2f, 0.2f, 0.2f);
+                                            notePair.transform.position = new Vector3(x, y, 1.0f);
+                                            notePair.transform.eulerAngles = new Vector3(0, 0, rz);
+                                            switch (noteController.noteData.colorType)
+                                            {
+                                                case ColorType.ColorA:
+                                                    noteCube.GetComponent<Renderer>().material.color = new Color(.3f, 0, 0);
+                                                    noteStick.GetComponent<Renderer>().material.color = new Color(1f, .5f, .5f);
+                                                    redParent.Enqueue(notePairTime);
+                                                    redPos = notePair.transform.position;
+                                                    break;
+                                                case ColorType.ColorB:
+                                                    noteCube.GetComponent<Renderer>().material.color = new Color(0, 0, .3f);
+                                                    noteStick.GetComponent<Renderer>().material.color = new Color(.5f, .5f, 1f);
+                                                    blueParent.Enqueue(notePairTime);
+                                                    bluePos = notePair.transform.position;
+                                                    break;
+                                                default:
+                                                    Destroy(noteCube);
+                                                    break;
+                                            }
+                                            notePair.SetActive(false);
+                                        };
+                                        break;
+                                    }
                                 }
                                 yield return null;
                             }
@@ -291,64 +324,57 @@ namespace NotesPredictor
         /// </summary>
         private void Update()
         {
-            //Plugin.Log.Debug("Update run");
-            GameObject blueParent = GameObject.Find("blueParent");
-            if (blueParent != null)
+            if (BS_Utils.Plugin.LevelData.GameplayCoreSceneSetupData.practiceSettings != null)
             {
-                //Plugin.Log.Debug("blueParent name is " + blueParent.name);
-                int blueCount = blueParent.transform.childCount;
-                GameObject[] blueChildren = new GameObject[blueCount];
-                for (int i = 0; i < blueCount; i++)
+                AudioTimeSyncController audioTimeSyncController = FindFirstOrDefault<AudioTimeSyncController>();
+                float songTime = audioTimeSyncController.songTime;
+
+                Queue<Pair_and_Time> newBlueParent = new Queue<Pair_and_Time>();
+                int blueCount = 0;
+                while (blueParent.Count > 0)
                 {
-                    GameObject notePair = blueParent.transform.GetChild(i).gameObject;
-                    GameObject noteCube = notePair.transform.GetChild(0).gameObject;
-                    GameObject noteWrist = notePair.transform.GetChild(2).gameObject;
-                    if (i == 0)
+                    Pair_and_Time nowPairTime = blueParent.Dequeue();
+                    GameObject nowPair = nowPairTime.pair;
+                    float limit = nowPairTime.limit;
+                    if (songTime > limit)
                     {
-                        notePair.SetActive(true);
-                        noteCube.SetActive(true);
-                        noteWrist.SetActive(true);
-                    }
-                    else if (i == 1)
-                    {
-                        notePair.SetActive(true);
-                        noteCube.SetActive(true);
-                        noteWrist.SetActive(false);
+                        Destroy(nowPair);
                     }
                     else
                     {
-                        notePair.SetActive(false);
+                        newBlueParent.Enqueue(nowPairTime);
+                        if (blueCount < 2)
+                        {
+                            nowPair.SetActive(true);
+                        }
+                        blueCount += 1;
                     }
                 }
-            }
-            GameObject redParent = GameObject.Find("redParent");
-            if (redParent != null)
-            {
-                //Plugin.Log.Debug("redParent name is " + redParent.name);
-                int redCount = redParent.transform.childCount;
-                GameObject[] redChildren = new GameObject[redCount];
-                for (int i = 0; i < redParent.transform.childCount; i++)
+                blueParent = newBlueParent;
+
+                Queue<Pair_and_Time> newRedParent = new Queue<Pair_and_Time>();
+                int redCount = 0;
+                while (redParent.Count > 0)
                 {
-                    GameObject notePair = redParent.transform.GetChild(i).gameObject;
-                    GameObject noteCube = notePair.transform.GetChild(0).gameObject;
-                    GameObject noteWrist = notePair.transform.GetChild(2).gameObject;
-                    if (i  == 0)
+                    Pair_and_Time nowPairTime = redParent.Dequeue();
+                    GameObject nowPair = nowPairTime.pair;
+                    float limit = nowPairTime.limit;
+                    if (songTime > limit)
                     {
-                        notePair.SetActive(true);
-                        noteCube.SetActive(true);
-                        noteWrist.SetActive(true);
-                    }
-                    else if (i == 1)
-                    {
-                        notePair.SetActive(true);
-                        noteCube.SetActive(true);
-                        noteWrist.SetActive(false);
+                        Destroy(nowPair);
                     }
                     else
                     {
-                        notePair.SetActive(false);
+                        newRedParent.Enqueue(nowPairTime);
+                        if (redCount < 2)
+                        {
+                            nowPair.SetActive(true);
+                        }
+                        redCount += 1;
                     }
                 }
+                redParent = newRedParent;
+
             }
         }
 
