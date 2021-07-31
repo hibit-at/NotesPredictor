@@ -26,6 +26,7 @@ namespace NotesPredictor
     {
         public static NotesPredictorController Instance { get; private set; }
         private CurvedTextMeshPro textMesh = new GameObject("Text").AddComponent<CurvedTextMeshPro>();
+        AudioTimeSyncController audioTimeSyncController;
         Queue<Pair_and_Time> blueParent = new Queue<Pair_and_Time>();
         Queue<Pair_and_Time> redParent = new Queue<Pair_and_Time>();
         Vector3 blue_last_position = new Vector3(.3f, 1.2f, 1.0f);
@@ -34,6 +35,8 @@ namespace NotesPredictor
         Vector3 red_last_position = new Vector3(-.3f, 1.2f, 1.0f);
         Vector3 red_last_anchor = new Vector3(-.3f, 1.8f, 1.0f);
         float red_last_time = 0f;
+        GameObject blue_indi;
+        GameObject red_indi;
 
         // These methods are automatically called by Unity, you should remove any you aren't using.
         #region Monobehaviour Messages
@@ -172,7 +175,7 @@ namespace NotesPredictor
                 inv_target.transform.localScale = new Vector3(0.2f, 0.2f, 0.2f);
                 inv_target.SetActive(false);
                 //create blue_indicator
-                GameObject blue_indi = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                blue_indi = GameObject.CreatePrimitive(PrimitiveType.Sphere);
                 renderer = blue_indi.GetComponent<Renderer>();
                 renderer.material = new Material(Shader.Find("Custom/SimpleLit"));
                 renderer.material.color = new Color(.5f,.5f,1f);
@@ -182,7 +185,7 @@ namespace NotesPredictor
                 blue_indi.transform.localScale = new Vector3(0.15f, 0.15f, 0.15f);
                 blue_indi.SetActive(true);
                 //create red_indicator
-                GameObject red_indi = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                red_indi = GameObject.CreatePrimitive(PrimitiveType.Sphere);
                 renderer = red_indi.GetComponent<Renderer>();
                 renderer.material = new Material(Shader.Find("Custom/SimpleLit"));
                 renderer.material.color = new Color(1f, .5f, .5f);
@@ -203,6 +206,7 @@ namespace NotesPredictor
                         Vector3 bluePos = new Vector3(.3f, 1.8f, 1.5f);
                         Vector3 redPos = new Vector3(-.3f, 1.8f, 1.5f);
                         StartCoroutine(GameCoreCoroutine());
+                        audioTimeSyncController = FindFirstOrDefault<AudioTimeSyncController>();
                         IEnumerator GameCoreCoroutine()
                         {
                             while (true)
@@ -373,7 +377,7 @@ namespace NotesPredictor
         {
             if (BS_Utils.Plugin.LevelData.GameplayCoreSceneSetupData.practiceSettings != null)
             {
-                AudioTimeSyncController audioTimeSyncController = FindFirstOrDefault<AudioTimeSyncController>();
+                
                 float songTime = audioTimeSyncController.songTime;
 
                 Queue<Pair_and_Time> newBlueParent = new Queue<Pair_and_Time>();
@@ -402,7 +406,6 @@ namespace NotesPredictor
                 }
                 blueParent = newBlueParent;
 
-                GameObject indi = GameObject.Find("blue_indi");
                 if (blueParent.Count > 0)
                 {
                     Vector3 new_position = blueParent.Peek().pair.transform.GetChild(0).gameObject.transform.position;
@@ -416,12 +419,12 @@ namespace NotesPredictor
                     float p3 = 3 * t * t * (1 - t);
                     float p4 = t * t * t;
                     Vector3 now_position = p1 * blue_last_position + p2 * blue_last_anchor + p3 * new_anchor + p4 * new_position;
-                    indi.transform.position = now_position;
+                    blue_indi.transform.position = now_position;
                 }
                 else
                 {
                     //indi.transform.position = blue_last_anchor;
-                    indi.transform.position = new Vector3(0, 0, -3f);
+                    blue_indi.transform.position = new Vector3(0, 0, -3f);
                 }
 
 
@@ -451,7 +454,6 @@ namespace NotesPredictor
                 }
                 redParent = newRedParent;
 
-                indi = GameObject.Find("red_indi");
                 if (redParent.Count > 0)
                 {
                     Vector3 new_position = redParent.Peek().pair.transform.GetChild(0).gameObject.transform.position;
@@ -465,17 +467,18 @@ namespace NotesPredictor
                     float p3 = 3 * t * t * (1 - t);
                     float p4 = t * t * t;
                     Vector3 now_position = p1 * red_last_position + p2 * red_last_anchor + p3 * new_anchor + p4 * new_position;
-                    indi.transform.position = now_position;
+                    red_indi.transform.position = now_position;
                 }
                 else
                 {
                     //indi.transform.position = red_last_anchor;
-                    indi.transform.position = new Vector3(0, 0, -3f);
+                    red_indi.transform.position = new Vector3(0, 0, -3f);
                 }
 
         }
     }
 
+        /// <summary>
         /// <summary>
         /// Called every frame after every other enabled script's Update().
         /// </summary>
