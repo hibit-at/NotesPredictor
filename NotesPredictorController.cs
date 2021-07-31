@@ -28,6 +28,12 @@ namespace NotesPredictor
         private CurvedTextMeshPro textMesh = new GameObject("Text").AddComponent<CurvedTextMeshPro>();
         Queue<Pair_and_Time> blueParent = new Queue<Pair_and_Time>();
         Queue<Pair_and_Time> redParent = new Queue<Pair_and_Time>();
+        Vector3 blue_last_position = new Vector3(.3f, 1.2f, 1.0f);
+        Vector3 blue_last_anchor = new Vector3(.3f, 1.8f, 1.0f);
+        float blue_last_time = 0f;
+        Vector3 red_last_position = new Vector3(-.3f, 1.2f, 1.0f);
+        Vector3 red_last_anchor = new Vector3(-.3f, 1.8f, 1.0f);
+        float red_last_time = 0f;
 
         // These methods are automatically called by Unity, you should remove any you aren't using.
         #region Monobehaviour Messages
@@ -145,6 +151,47 @@ namespace NotesPredictor
                 //stick.transform.localScale = new Vector3(0.01f, .4f, 0.01f);
                 stick.transform.localScale = new Vector3(0.01f, 1.5f, 0.1f);
                 stick.SetActive(true);
+                //target
+                GameObject target = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                renderer = target.GetComponent<Renderer>();
+                renderer.material = new Material(Shader.Find("Custom/SimpleLit"));
+                renderer.material.color = Color.yellow;
+                target.name = "target";
+                target.transform.SetParent(pair.transform);
+                target.transform.localPosition = new Vector3(0, -0.9f, 0);
+                target.transform.localScale = new Vector3(0.2f, 0.2f, 0.2f);
+                target.SetActive(false);
+                //inv_target
+                GameObject inv_target = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                renderer = inv_target.GetComponent<Renderer>();
+                renderer.material = new Material(Shader.Find("Custom/SimpleLit"));
+                renderer.material.color = Color.yellow;
+                inv_target.name = "inv_target";
+                inv_target.transform.SetParent(pair.transform);
+                inv_target.transform.localPosition = new Vector3(0, 0.9f, 0);
+                inv_target.transform.localScale = new Vector3(0.2f, 0.2f, 0.2f);
+                inv_target.SetActive(false);
+                //create blue_indicator
+                GameObject blue_indi = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                renderer = blue_indi.GetComponent<Renderer>();
+                renderer.material = new Material(Shader.Find("Custom/SimpleLit"));
+                renderer.material.color = new Color(.5f,.5f,1f);
+                blue_indi.name = "blue_indi";
+                blue_indi.transform.SetParent(transform);
+                blue_indi.transform.localPosition = new Vector3(.3f, 2, -2);
+                blue_indi.transform.localScale = new Vector3(0.15f, 0.15f, 0.15f);
+                blue_indi.SetActive(true);
+                //create red_indicator
+                GameObject red_indi = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                renderer = red_indi.GetComponent<Renderer>();
+                renderer.material = new Material(Shader.Find("Custom/SimpleLit"));
+                renderer.material.color = new Color(1f, .5f, .5f);
+                red_indi.name = "red_indi";
+                red_indi.transform.SetParent(transform);
+                red_indi.transform.localPosition = new Vector3(-.3f, 2, -2);
+                red_indi.transform.localScale = new Vector3(0.15f, 0.15f, 0.15f);
+                red_indi.SetActive(true);
+
 
 
 
@@ -172,6 +219,8 @@ namespace NotesPredictor
                                             GameObject notePair = Instantiate(pair);
                                             GameObject noteCube = notePair.transform.GetChild(0).gameObject;
                                             GameObject noteStick = notePair.transform.GetChild(1).gameObject;
+                                            GameObject noteTarget = notePair.transform.GetChild(2).gameObject;
+                                            GameObject noteInv = notePair.transform.GetChild(3).gameObject;
                                             float limit = noteController.noteData.time;
                                             Pair_and_Time notePairTime = new Pair_and_Time(notePair, limit);
                                             float x = 0;
@@ -281,6 +330,10 @@ namespace NotesPredictor
                                             noteCube.transform.localScale = new Vector3(0.2f, 0.2f, 0.2f);
                                             notePair.transform.position = new Vector3(x, y, 1.0f);
                                             notePair.transform.eulerAngles = new Vector3(0, 0, rz);
+                                            Vector3 nTP = noteTarget.transform.position; // newTargetPosition
+                                            nTP = new Vector3(Mathf.Clamp(nTP[0], -1.2f, 1.2f), Mathf.Clamp(nTP[1], 0f, 2.1f), 1.0f);
+                                            Vector3 nIP = noteInv.transform.position;
+                                            nIP = new Vector3(Mathf.Clamp(nIP[0], -1.2f, 1.2f), Mathf.Clamp(nIP[1], 0f, 2.1f), 1.0f);
                                             switch (noteController.noteData.colorType)
                                             {
                                                 case ColorType.ColorA:
@@ -332,6 +385,9 @@ namespace NotesPredictor
                     float limit = nowPairTime.limit;
                     if (songTime > limit)
                     {
+                        blue_last_time = limit;
+                        blue_last_position = nowPair.transform.GetChild(0).gameObject.transform.position;
+                        blue_last_anchor = nowPair.transform.GetChild(2).gameObject.transform.position;
                         Destroy(nowPair);
                     }
                     else
@@ -346,6 +402,29 @@ namespace NotesPredictor
                 }
                 blueParent = newBlueParent;
 
+                GameObject indi = GameObject.Find("blue_indi");
+                if (blueParent.Count > 0)
+                {
+                    Vector3 new_position = blueParent.Peek().pair.transform.GetChild(0).gameObject.transform.position;
+                    Vector3 new_anchor = blueParent.Peek().pair.transform.GetChild(3).gameObject.transform.position;
+                    float target_time = blueParent.Peek().limit;
+                    float duration = target_time - blue_last_time;
+                    float pastTime = songTime - blue_last_time;
+                    float t = pastTime / duration;
+                    float p1 = (1 - t) * (1 - t) * (1 - t);
+                    float p2 = 3 * t * (1 - t) * (1 - t);
+                    float p3 = 3 * t * t * (1 - t);
+                    float p4 = t * t * t;
+                    Vector3 now_position = p1 * blue_last_position + p2 * blue_last_anchor + p3 * new_anchor + p4 * new_position;
+                    indi.transform.position = now_position;
+                }
+                else
+                {
+                    //indi.transform.position = blue_last_anchor;
+                    indi.transform.position = new Vector3(0, 0, -3f);
+                }
+
+
                 Queue<Pair_and_Time> newRedParent = new Queue<Pair_and_Time>();
                 int redCount = 0;
                 while (redParent.Count > 0)
@@ -355,6 +434,9 @@ namespace NotesPredictor
                     float limit = nowPairTime.limit;
                     if (songTime > limit)
                     {
+                        red_last_time = limit;
+                        red_last_position = nowPair.transform.GetChild(0).gameObject.transform.position;
+                        red_last_anchor = nowPair.transform.GetChild(2).gameObject.transform.position;
                         Destroy(nowPair);
                     }
                     else
@@ -369,8 +451,30 @@ namespace NotesPredictor
                 }
                 redParent = newRedParent;
 
-            }
+                indi = GameObject.Find("red_indi");
+                if (redParent.Count > 0)
+                {
+                    Vector3 new_position = redParent.Peek().pair.transform.GetChild(0).gameObject.transform.position;
+                    Vector3 new_anchor = redParent.Peek().pair.transform.GetChild(3).gameObject.transform.position;
+                    float target_time = redParent.Peek().limit;
+                    float duration = target_time - red_last_time;
+                    float pastTime = songTime - red_last_time;
+                    float t = pastTime / duration;
+                    float p1 = (1 - t) * (1 - t) * (1 - t);
+                    float p2 = 3 * t * (1 - t) * (1 - t);
+                    float p3 = 3 * t * t * (1 - t);
+                    float p4 = t * t * t;
+                    Vector3 now_position = p1 * red_last_position + p2 * red_last_anchor + p3 * new_anchor + p4 * new_position;
+                    indi.transform.position = now_position;
+                }
+                else
+                {
+                    //indi.transform.position = red_last_anchor;
+                    indi.transform.position = new Vector3(0, 0, -3f);
+                }
+
         }
+    }
 
         /// <summary>
         /// Called every frame after every other enabled script's Update().
