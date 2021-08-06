@@ -28,15 +28,15 @@ namespace NotesPredictor
         private CurvedTextMeshPro textMesh = new GameObject("Text").AddComponent<CurvedTextMeshPro>();
         AudioTimeSyncController audioTimeSyncController;
 
-        // initilize guide objects
-        Queue<Pair_and_Time> blueParent = new Queue<Pair_and_Time>();
-        Queue<Pair_and_Time> redParent = new Queue<Pair_and_Time>();
-        Vector3 blue_last_position = new Vector3(.3f, 1.2f, 1.0f);
-        Vector3 blue_last_anchor = new Vector3(.3f, 1.8f, 1.0f);
-        float blue_last_time = 0f;
-        Vector3 red_last_position = new Vector3(-.3f, 1.2f, 1.0f);
-        Vector3 red_last_anchor = new Vector3(-.3f, 1.8f, 1.0f);
-        float red_last_time = 0f;
+        //declare
+        Queue<Pair_and_Time> blueParent;
+        Queue<Pair_and_Time> redParent;
+        Vector3 blue_last_position;
+        Vector3 blue_last_anchor;
+        float blue_last_time;
+        Vector3 red_last_position;
+        Vector3 red_last_anchor;
+        float red_last_time;
         GameObject blue_indi;
         GameObject red_indi;
 
@@ -46,8 +46,7 @@ namespace NotesPredictor
         bool redCutDisplay = true;
         bool blueTargetDisplay = false;
         bool redTargetDisplay = false;
-        bool gamePlayDisplay = false;
-        bool practiceDisplay = true;
+        bool dotSuggestion = true;
 
 
         // These methods are automatically called by Unity, you should remove any you aren't using.
@@ -116,7 +115,7 @@ namespace NotesPredictor
             textMesh.transform.eulerAngles = new Vector3(0, 0, 0);
             textMesh.transform.position = new Vector3(0, 2f, 3f);
             textMesh.color = Color.white;
-            textMesh.fontSize = 0.2f;
+            textMesh.fontSize = 0.0f;
             textMesh.text = "debug";
 
             StartCoroutine(InitCoroutine());
@@ -137,6 +136,7 @@ namespace NotesPredictor
                 GameObject pair = new GameObject("pair");
                 pair.transform.SetParent(transform);
                 pair.transform.localPosition = new Vector3(0, .5f, -1f);
+                pair.SetActive(false);
 
                 //create prefab of cube, stick, target, inv_target
                 //cube
@@ -150,7 +150,6 @@ namespace NotesPredictor
                 cube.transform.localScale = new Vector3(0.2f, 0.2f, 0.2f);
                 cube.SetActive(true);
                 //stick
-                //GameObject stick = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
                 GameObject stick = GameObject.CreatePrimitive(PrimitiveType.Cube);
                 renderer = stick.GetComponent<Renderer>();
                 renderer.material = new Material(Shader.Find("Custom/SimpleLit"));
@@ -158,7 +157,6 @@ namespace NotesPredictor
                 stick.name = "stick";
                 stick.transform.SetParent(pair.transform);
                 stick.transform.localPosition = new Vector3(0, .3f, 0);
-                //stick.transform.localScale = new Vector3(0.01f, .4f, 0.01f);
                 stick.transform.localScale = new Vector3(0.01f, 1.5f, 0.1f);
                 stick.SetActive(true);
                 //target
@@ -191,7 +189,7 @@ namespace NotesPredictor
                 blue_indi.transform.SetParent(transform);
                 blue_indi.transform.localPosition = new Vector3(.3f, 2, -2);
                 blue_indi.transform.localScale = new Vector3(0.15f, 0.15f, 0.15f);
-                blue_indi.SetActive(true);
+                blue_indi.SetActive(false);
                 //create red_indicator
                 red_indi = GameObject.CreatePrimitive(PrimitiveType.Sphere);
                 renderer = red_indi.GetComponent<Renderer>();
@@ -201,7 +199,7 @@ namespace NotesPredictor
                 red_indi.transform.SetParent(transform);
                 red_indi.transform.localPosition = new Vector3(-.3f, 2, -2);
                 red_indi.transform.localScale = new Vector3(0.15f, 0.15f, 0.15f);
-                red_indi.SetActive(true);
+                red_indi.SetActive(false);
 
 
 
@@ -211,51 +209,55 @@ namespace NotesPredictor
                     if (next.name == "GameCore")
                     {
                         Plugin.Log.Debug("GameCore Scene Started");
+
+                        //initialize first note position
                         Vector3 bluePos = new Vector3(.3f, 1.8f, 1.5f);
                         Vector3 redPos = new Vector3(-.3f, 1.8f, 1.5f);
                         audioTimeSyncController = FindFirstOrDefault<AudioTimeSyncController>();
 
                         // initialize queue
-                        blueParent.Clear();
-                        redParent.Clear();
+                        blueParent = new Queue<Pair_and_Time>();
+                        redParent = new Queue<Pair_and_Time>();
+                        blue_last_position = new Vector3(.3f, 1.2f, 1.0f);
+                        blue_last_anchor = new Vector3(.3f, 1.8f, 1.0f);
+                        blue_last_time = 0f;
+                        red_last_position = new Vector3(-.3f, 1.2f, 1.0f);
+                        red_last_anchor = new Vector3(-.3f, 1.8f, 1.0f);
+                        red_last_time = 0f;
 
                         // setting params
                         string Filepath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Userdata", "NotesPredictor.ini");
                         if (!System.IO.File.Exists(Filepath))
                         {
-                            string defaulparams = "offset:1.0\nblueCutDisplay:true\nredCutDisplay:true\nblueTargetDisplay:false\nredTargetDisplay:false\ngamePlayDisplay:false\npracticeDisplay: true";
+                            string defaulparams = "offset=1.2\nblueCutDisplay=true\nredCutDisplay=true\nblueTargetDisplay=false\nredTargetDisplay=false\ndotSuggestion=true";
                             File.WriteAllText(Filepath, defaulparams);
                         }
                         string[] jsonStr = ReadAllLine(Filepath, "utf-8").Replace("\r\n", "\n").Split(new[] { '\n', '\r' });
                         foreach (string j in jsonStr)
                         {
-                            if (j.StartsWith("offset:"))
+                            if (j.StartsWith("offset="))
                             {
                                 z_offset = float.Parse(j.Substring(7));
                             }
-                            if (j.StartsWith("blueCutDisplay:"))
+                            if (j.StartsWith("blueCutDisplay="))
                             {
                                 blueCutDisplay = bool.Parse(j.Substring(15));
                             }
-                            if (j.StartsWith("redCutDisplay:"))
+                            if (j.StartsWith("redCutDisplay="))
                             {
                                 redCutDisplay = bool.Parse(j.Substring(14));
                             }
-                            if(j.StartsWith("blueTargetDisplay:"))
+                            if (j.StartsWith("blueTargetDisplay="))
                             {
                                 blueTargetDisplay = bool.Parse(j.Substring(18));
                             }
-                            if (j.StartsWith("redTargetDisplay:"))
+                            if (j.StartsWith("redTargetDisplay="))
                             {
                                 redTargetDisplay = bool.Parse(j.Substring(17));
                             }
-                            if (j.StartsWith("gamePlayDisplay:"))
+                            if (j.StartsWith("dotSuggestion="))
                             {
-                                gamePlayDisplay = bool.Parse(j.Substring(16));
-                            }
-                            if (j.StartsWith("practiceDisplay:"))
-                            {
-                                practiceDisplay = bool.Parse(j.Substring(16));
+                                dotSuggestion = bool.Parse(j.Substring(14));
                             }
                         }
                         if (blueTargetDisplay)
@@ -274,7 +276,7 @@ namespace NotesPredictor
                         {
                             red_indi.SetActive(false);
                         }
-                        textMesh.text = z_offset.ToString() + blueCutDisplay.ToString() + redCutDisplay.ToString() + blueTargetDisplay.ToString() + redTargetDisplay.ToString() + gamePlayDisplay.ToString() + practiceDisplay.ToString();
+                        textMesh.text = z_offset.ToString() + blueCutDisplay.ToString() + redCutDisplay.ToString() + blueTargetDisplay.ToString() + redTargetDisplay.ToString() + dotSuggestion.ToString();
 
                         StartCoroutine(GameCoreCoroutine());
                         IEnumerator GameCoreCoroutine()
@@ -283,9 +285,7 @@ namespace NotesPredictor
                             {
                                 PauseController pauseController = Resources.FindObjectsOfTypeAll<PauseController>().FirstOrDefault(x => x.isActiveAndEnabled);
                                 BeatmapObjectManager beatmapObjectManager = pauseController?.GetField<BeatmapObjectManager, PauseController>("_beatmapObjectManager");
-                                bool sub1 = BS_Utils.Plugin.LevelData.GameplayCoreSceneSetupData.practiceSettings != null && practiceDisplay;
-                                bool sub2 = BS_Utils.Plugin.LevelData.GameplayCoreSceneSetupData.practiceSettings == null && gamePlayDisplay;
-                                if (sub1 || sub2)
+                                if (BS_Utils.Plugin.LevelData.GameplayCoreSceneSetupData.practiceSettings != null)
                                 {
                                     if (beatmapObjectManager != null)
                                     {
@@ -363,6 +363,14 @@ namespace NotesPredictor
                                                     rz = 135;
                                                     break;
                                                 case NoteCutDirection.Any:
+                                                    if (dotSuggestion)
+                                                    {
+                                                        noteStick.SetActive(true);
+                                                    }
+                                                    else
+                                                    {
+                                                        noteStick.SetActive(false);
+                                                    }
                                                     Vector3 old_pos = new Vector3(0, 0, 0);
                                                     switch (noteController.noteData.colorType)
                                                     {
@@ -447,110 +455,130 @@ namespace NotesPredictor
         /// </summary>
         private void Update()
         {
-            //if (BS_Utils.Plugin.LevelData.GameplayCoreSceneSetupData.practiceSettings != null)
-            if (true)
+
             {
+
+                float songTime = audioTimeSyncController.songTime;
+
+                int blueCount = 0;
+                foreach (Pair_and_Time nowPairTime in blueParent)
                 {
-
-                    float songTime = audioTimeSyncController.songTime;
-
-                    int blueCount = 0;
-                    foreach (Pair_and_Time nowPairTime in blueParent)
+                    GameObject nowPair = nowPairTime.pair;
+                    float limit = nowPairTime.limit;
+                    if (songTime > limit)
                     {
-                        GameObject nowPair = nowPairTime.pair;
-                        float limit = nowPairTime.limit;
-                        if (songTime > limit)
+                        blue_last_time = limit;
+                        blue_last_position = nowPair.transform.GetChild(0).gameObject.transform.position;
+                        blue_last_anchor = nowPair.transform.GetChild(2).gameObject.transform.position;
+                        Destroy(nowPair);
+                        blueParent.Dequeue();
+                    }
+                    else
+                    {
+                        if (blueCount < 2 && blueCutDisplay)
                         {
-                            blue_last_time = limit;
-                            blue_last_position = nowPair.transform.GetChild(0).gameObject.transform.position;
-                            blue_last_anchor = nowPair.transform.GetChild(2).gameObject.transform.position;
-                            Destroy(nowPair);
-                            blueParent.Dequeue();
+                            nowPair.SetActive(true);
                         }
                         else
                         {
-                            if (blueCount < 2 && blueCutDisplay)
-                            {
-                                nowPair.SetActive(true);
-                            }
-                            else
-                            {
-                                break;
-                            }
-                            blueCount += 1;
+                            break;
                         }
+                        blueCount += 1;
                     }
+                }
 
-                    if (blueParent.Count > 0)
+                if (blueParent.Count > 0)
+                {
+                    Vector3 new_position = blueParent.Peek().pair.transform.GetChild(0).gameObject.transform.position;
+                    Vector3 new_anchor = blueParent.Peek().pair.transform.GetChild(3).gameObject.transform.position;
+                    float target_time = blueParent.Peek().limit;
+                    float duration = target_time - blue_last_time;
+                    Vector3 now_position;
+                    if(duration == 0)
                     {
-                        Vector3 new_position = blueParent.Peek().pair.transform.GetChild(0).gameObject.transform.position;
-                        Vector3 new_anchor = blueParent.Peek().pair.transform.GetChild(3).gameObject.transform.position;
-                        float target_time = blueParent.Peek().limit;
-                        float duration = target_time - blue_last_time;
+                        now_position = new_position;
+                    }
+                    else
+                    {
                         float pastTime = songTime - blue_last_time;
                         float t = pastTime / duration;
                         float p1 = (1 - t) * (1 - t) * (1 - t);
                         float p2 = 3 * t * (1 - t) * (1 - t);
                         float p3 = 3 * t * t * (1 - t);
                         float p4 = t * t * t;
-                        Vector3 now_position = p1 * blue_last_position + p2 * blue_last_anchor + p3 * new_anchor + p4 * new_position;
-                        blue_indi.transform.position = now_position;
+                        now_position = p1 * blue_last_position + p2 * blue_last_anchor + p3 * new_anchor + p4 * new_position;
+
+                    }
+                    float new_z = z_offset;
+                    now_position = new Vector3(now_position[0], now_position[1], new_z);
+                    blue_indi.transform.position = now_position;
+                }
+                else
+                {
+                    //indi.transform.position = blue_last_anchor;
+                    blue_indi.transform.position = new Vector3(0, 0, -3f);
+                }
+
+
+                int redCount = 0;
+                foreach (Pair_and_Time nowPairTime in redParent)
+                {
+                    GameObject nowPair = nowPairTime.pair;
+                    float limit = nowPairTime.limit;
+                    if (songTime > limit)
+                    {
+                        red_last_time = limit;
+                        red_last_position = nowPair.transform.GetChild(0).gameObject.transform.position;
+                        red_last_anchor = nowPair.transform.GetChild(2).gameObject.transform.position;
+                        Destroy(nowPair);
+                        redParent.Dequeue();
                     }
                     else
                     {
-                        //indi.transform.position = blue_last_anchor;
-                        blue_indi.transform.position = new Vector3(0, 0, -3f);
-                    }
-
-
-                    int redCount = 0;
-                    foreach (Pair_and_Time nowPairTime in redParent)
-                    {
-                        GameObject nowPair = nowPairTime.pair;
-                        float limit = nowPairTime.limit;
-                        if (songTime > limit)
+                        if (redCount < 2 && redCutDisplay)
                         {
-                            red_last_time = limit;
-                            red_last_position = nowPair.transform.GetChild(0).gameObject.transform.position;
-                            red_last_anchor = nowPair.transform.GetChild(2).gameObject.transform.position;
-                            Destroy(nowPair);
-                            redParent.Dequeue();
+                            nowPair.SetActive(true);
                         }
                         else
                         {
-                            if (redCount < 2 && redCutDisplay)
-                            {
-                                nowPair.SetActive(true);
-                            }
-                            else
-                            {
-                                break;
-                            }
-                            redCount += 1;
+                            break;
                         }
+                        redCount += 1;
                     }
+                }
 
-                    if (redParent.Count > 0)
+                if (redParent.Count > 0)
+                {
+                    Vector3 new_position = redParent.Peek().pair.transform.GetChild(0).gameObject.transform.position;
+                    Vector3 new_anchor = redParent.Peek().pair.transform.GetChild(3).gameObject.transform.position;
+                    float target_time = redParent.Peek().limit;
+                    float duration = target_time - red_last_time;
+                    Vector3 now_position;
+                    if (duration == 0)
                     {
-                        Vector3 new_position = redParent.Peek().pair.transform.GetChild(0).gameObject.transform.position;
-                        Vector3 new_anchor = redParent.Peek().pair.transform.GetChild(3).gameObject.transform.position;
-                        float target_time = redParent.Peek().limit;
-                        float duration = target_time - red_last_time;
+                        now_position = new_position;
+                    }
+                    else
+                    {
                         float pastTime = songTime - red_last_time;
                         float t = pastTime / duration;
                         float p1 = (1 - t) * (1 - t) * (1 - t);
                         float p2 = 3 * t * (1 - t) * (1 - t);
                         float p3 = 3 * t * t * (1 - t);
                         float p4 = t * t * t;
-                        Vector3 now_position = p1 * red_last_position + p2 * red_last_anchor + p3 * new_anchor + p4 * new_position;
-                        red_indi.transform.position = now_position;
+                        now_position = p1 * red_last_position + p2 * red_last_anchor + p3 * new_anchor + p4 * new_position;
+
                     }
-                    else
-                    {
-                        //indi.transform.position = red_last_anchor;
-                        red_indi.transform.position = new Vector3(0, 0, -3f);
-                    }
+                    float new_z = z_offset;
+                    now_position = new Vector3(now_position[0], now_position[1], new_z);
+                    red_indi.transform.position = now_position;
                 }
+                else
+                {
+                    //indi.transform.position = red_last_anchor;
+                    red_indi.transform.position = new Vector3(0, 0, -3f);
+                }
+
             }
         }
 
